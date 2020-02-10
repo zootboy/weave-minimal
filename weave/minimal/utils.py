@@ -50,7 +50,7 @@ class Request(_Request):
 
 def encode(uid):
     if re.search('[^A-Z0-9._-]', uid, re.I):
-        return base64.b32encode(sha1(uid).digest()).lower()
+        return base64.b32encode(sha1(uid.encode("UTF-8")).digest()).lower()
     return uid
 
 
