@@ -43,6 +43,7 @@ import logging
 
 from os.path import join, dirname
 from argparse import ArgumentParser, HelpFormatter, SUPPRESS
+import configparser
 
 try:
     from urllib.parse import urlsplit
@@ -222,7 +223,7 @@ def main():
     fmt = lambda prog: HelpFormatter(prog, max_help_position=28)
     desc = u"A lightweight Firefox Sync server, that just works™. If it " \
            u"doesn't just work for you, please file a bug: " \
-           u"https://github.com/posativ/weave-minimal/issues"
+           u"https://github.com/zootboy/weave-minimal/issues"
 
     parser = ArgumentParser(description=desc, formatter_class=fmt)
     option = parser.add_argument
@@ -233,6 +234,8 @@ def main():
            help="port to listen on")
     option("--log-file", dest="logfile", default=None, type=str,
            metavar="FILE", help="log to a file")
+    option("--log-level", dest="loglev", default=None, type=str,
+           metavar="LEVEL", help="log level")
 
     option("--data-dir", dest="data_dir", default=".data/", metavar="/var/...",
            help="directory to store sync data, defaults to .data/")
@@ -256,6 +259,10 @@ def main():
         print('(Storage API 1.1, User API 1.0)')
         sys.exit(0)
 
+    if options.loglev:
+        logger.setLevel(options.loglev)
+        logger.info("Loglevel set to " + options.loglev)
+
     if options.logfile:
         handler = logging.FileHandler(options.logfile)
 
@@ -264,6 +271,35 @@ def main():
 
         logger.propagate = False
         logging.getLogger('werkzeug').propagate = False
+
+    config = configparser.ConfigParser()
+    config.read("/etc/weave-minimal.conf")
+
+    if "weave-minimal" in config:
+        config = config["weave-minimal"]
+        logging.info("Loading config from weave-minimal.conf")
+
+        if "host" in config:
+            options.host = config["host"]
+
+        if "port" in config:
+            options.port = int(config["port"])
+
+        if "data-dir" in config:
+            options.data_dir = config["data-dir"]
+
+        if "base-url" in config:
+            options.base_url = config["base-url"]
+
+        if "log-level" in config:
+            logger.setLevel(config["log-level"])
+            logger.info("Loglevel set to " + config["log-level"])
+
+        if "enable-registration" in config:
+            options.registration = True
+
+    if options.registration:
+        logger.warn("Registration is enabled. Be sure to disable and restart when complete.")
 
     app = make_app(options.data_dir, options.base_url, options.registration)
 
@@ -284,7 +320,7 @@ def main():
 
     try:
         from gevent.pywsgi import WSGIServer
-        WSGIServer((options.host, options.port), app).serve_forever()
+        WSGIServer((options.host, options.port), app, log=logger).serve_forever()
     except ImportError:
         run_simple(options.host, options.port, app, use_reloader=options.reloader, threaded=True)
 
