@@ -1,14 +1,19 @@
-weave-minimal: a Firefox Sync Server that just works™
-=====================================================
+weave-minimal: a Weave Sync 1.1 Sync Server that just works™
+============================================================
 
-**DOES NOT WORK WITH FIREFOX 29 OR LATER**
+**INTENDED FOR USE WITH PALE MOON - DOES NOT WORK WITH FIREFOX 29 OR LATER**
 
 This is a lightweight implementation of Mozillas' [User API v1.0][1] and
 [Storage API v1.1][2] without LDAP, MySQL, Redis etc. overhead. It is multi
 users capable and depends only on [werkzeug][3].
 
-I mean, *really* lightweight and *really* simple to install. No hg-attack clone
-fetch fail apt-get install. It just works.
+The [Pale Moon][6] web browser continues to use the Sync 1.1 (Weave) standard,
+thus this project has been partially resurrected to support running a
+lightweight, personal sync server.
+
+Being lightweight and simple, weave-minimal does not support advanced features
+such as user quotas or password resets. Its focus is on being simple to deploy
+and use.
 
 Note, that the name originates from the deprecated [Weave Minimal Server][4],
 but shares nothing beside the name; see [FSyncMS][5] for a still working, PHP
@@ -19,61 +24,46 @@ based sync server.
 [3]: http://werkzeug.pocoo.org/
 [4]: https://tobyelliott.wordpress.com/2011/03/25/updating-and-deprecating-the-weave-minimal-server/
 [5]: https://github.com/balu-/FSyncMS/
+[6]: https://www.palemoon.org/sync/
 
 Setup and Configuration
 -----------------------
 
-You need Python 2.6, 2.7 or 3.3. See `weave-minimal --help` for a list of
-parameters and a short description.
+Only Python 3 is supported, as python 2.x is EOL. See `weave-minimal --help`
+for a list of parameters and a short description.
 
-    $ pip install weave-minimal
     $ weave-minimal --enable-registration
      * Running on http://127.0.0.1:8080/
 
-To run weave-minimal as a daemon, consider this SysVinit script:
+Required dependencies:
+* python3
+* python3-werkzeug
 
-```bash
-$ cat /etc/init.d/weave-minimal
-#!/bin/sh
+Optional dependencies:
+* python3-gevent 
 
-NAME=weave-minimal
-USER=www
-CMD=/usr/local/bin/weave-minimal
+The version of weave-minimal in pip is out of date. Currently the only supported
+install paths are a manual clone or the [Arch Linux AUR package][7].
 
-PORT=8080
-DBPATH=/var/lib/weave-minimal/
+Weave-minimal will read an ini-style config file from /etc/weave-minimal.conf.
+See the example config in the examples/ directory for supported options.
 
-if [ ! -d $DBPATH ]; then
-  mkdir /var/lib/weave-minimal
-  chown $USER /var/lib/weave-minimal
-fi
+To run weave-minimal as a daemon, see the example systemd service unit file in
+the examples/ directory.
 
-case $1 in
-    start)
-        echo -n "Starting $NAME."
-        start-stop-daemon --start --background --pidfile /var/run/$NAME.pid \
-        --chuid $USER --make-pidfile --exec $CMD -- --data-dir=$DBPATH \
-        --port=$PORT --enable-registration
-       ;;
-    stop)  start-stop-daemon --stop --pidfile /var/run/$NAME.pid
-       ;;
-esac
-$ chmod +x /etc/init.d/weave-minimal
-$ sudo update-rc.d weave-minimal defaults 99
-$ sudo invoke-rc.d weave-minimal start
-```
+[7]: https://aur.archlinux.org/packages/weave-minimal-git/
 
 ### See also
 
-* [EN: Firefox Sync server right on router][6]
-* [DE: Uberspace und dein Firefox Sync Server][7], [FastCGI wrapper][8]
+* [EN: Firefox Sync server right on router][8]
+* [DE: Uberspace und dein Firefox Sync Server][9], [FastCGI wrapper][10]
 
-[6]: http://forums.smallnetbuilder.com/showthread.php?t=10797
-[7]: http://christoph-polcin.com/2012/12/31/firefox-minimal-weave-auf-uberspace/
-[8]: https://github.com/oa/weave-minimal-uberspace
+[8]: http://forums.smallnetbuilder.com/showthread.php?t=10797
+[9]: http://christoph-polcin.com/2012/12/31/firefox-minimal-weave-auf-uberspace/
+[10]: https://github.com/oa/weave-minimal-uberspace
 
-Setting up Firefox
-------------------
+Setting up Pale Moon
+--------------------
 
 0. **Migrate from the official servers**: write down your email address and sync
    key (you can reset your password anyway) and unlink your client. If you want
@@ -87,18 +77,18 @@ Setting up Firefox
 2. If no errors come up, click continue and wait a minute. If you sync tabs,
    quit, re-open and manually sync otherwise you'll get an empty tab list.
 
-3. **Connect other clients** is as easy as with the mozilla servers (the client
-   actually uses mozilla's servers for this): click *I already have an account*
+3. **Connect other clients** is as easy as with the Pale Moon servers (the client
+   actually uses Pale Moon's J-PAKE server for this): click *I already have an account*
    and write the three codes into an already linked browser using *Pair Device*.
    Optionally you can use the manual prodecure but the you have to enter your
    sync key by hand.
 
-4. If you have connected your clients, you can close the registration by running
+4. Once you have registered your clients, you can close the registration by running
    `weave-minimal` without the `--enable-registration` flag.
 
 **Q:** Is this implementation standard compliant?  
 **A:** Yes, it passes the official functional test suite (with [minor
-       modifications][9]).
+       modifications][11]).
 
 **Q:** Is it compatible with the latest version of Firefox?  
 **A:** Not guaranteed. There is a new API draft, but not used in
@@ -119,7 +109,7 @@ Setting up Firefox
        returns the correct sync url. Next, try to restart your browser. If that
        doesn't help, please file a bug report.
 
-[9]: https://github.com/posativ/weave-minimal/issues/4#issuecomment-8268947
+[11]: https://github.com/posativ/weave-minimal/issues/4#issuecomment-8268947
 
 ### Using a Custom Username
 
@@ -173,31 +163,6 @@ public url, e.g. `weave-minimal --base-url=http://example.org/sync ...`
     </Location>
 
 You can skip `RequestHeader`, if apache proxies the service on regular `http`.
-
-### SSL and Firefox for Android
-
-If Firefox for Android fails to sync properly, yet doesn't give any error
-messages either, check out `adb logcat`. You might get an error similar to
-this:
-
-    javax.net.ssl.SSLPeerUnverifiedException: No peer certificate
-
-That's because [Firefox for Android has a nasty
-bug](https://bugzilla.mozilla.org/show_bug.cgi?id=756763) that doesn't allow
-you to use self-signed certificates or certain ciphers.
-
-For some reason, this error occurs not because your certificate is untrusted,
-but because of ciphers. Adding RC4+RSA to the server's cipher list "fixes" that
-issue.
-
-For nginx the code to add would be:
-
-    server {
-        # ...
-        # this makes ssl connections less secure!
-        ssl_ciphers HIGH:!aNULL:!MD5:RC4+RSA;
-        # ...
-    }
 
 Deployment
 ----------
