@@ -55,7 +55,7 @@ from werkzeug.serving import run_simple
 from werkzeug.wrappers import Response
 from werkzeug.exceptions import HTTPException, NotFound, NotImplemented
 
-from werkzeug.wsgi import SharedDataMiddleware
+from werkzeug.middleware.shared_data import SharedDataMiddleware
 
 from weave.minimal import user, storage, misc
 from weave.minimal.utils import encode, Request
