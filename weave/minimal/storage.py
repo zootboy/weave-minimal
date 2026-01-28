@@ -6,6 +6,7 @@ import math
 import time
 import json
 import sqlite3
+from contextlib import closing
 
 from werkzeug.wrappers import Response
 from werkzeug.exceptions import PreconditionFailed
@@ -34,14 +35,14 @@ FIELDS = ['id', 'modified', 'sortindex', 'payload', 'parentid', 'predecessorid',
 
 def iter_collections(dbpath):
     """iters all available collection_ids"""
-    with sqlite3.connect(dbpath) as db:
+    with closing(sqlite3.connect(dbpath)) as db:
         res = db.execute("SELECT name FROM sqlite_master WHERE type='table';").fetchall()
     return [x[0] for x in res]
 
 
 def expire(dbpath, cid):
     try:
-        with sqlite3.connect(dbpath) as db:
+        with closing(sqlite3.connect(dbpath)) as db:
             db.execute("DELETE FROM %s WHERE (%s - modified) > ttl" % (cid, time.time()))
     except sqlite3.OperationalError:
         pass
@@ -52,7 +53,7 @@ def has_modified(since, dbpath, cid):
     on has been modified since the provided timestamp, the request will fail with
     an HTTP 412 Precondition Failed status."""
 
-    with sqlite3.connect(dbpath) as db:
+    with closing(sqlite3.connect(dbpath)) as db:
 
         try:
             sql = 'SELECT MAX(modified) FROM %s' % cid
@@ -80,7 +81,7 @@ def set_item(dbpath, uid, cid, data):
         except ValueError:
             return obj
 
-    with sqlite3.connect(dbpath) as db:
+    with closing(sqlite3.connect(dbpath)) as db:
         sql = ('main.%s (id VARCHAR(64) PRIMARY KEY, modified FLOAT,'
                'sortindex INTEGER, payload VARCHAR(256),'
                'payload_size INTEGER, parentid VARCHAR(64),'
@@ -115,7 +116,7 @@ def get_collections_info(app, environ, request, version, uid):
     dbpath = app.dbpath(uid, request.authorization.password)
     ids = iter_collections(dbpath); collections = {}
 
-    with sqlite3.connect(dbpath) as db:
+    with closing(sqlite3.connect(dbpath)) as db:
         for id in ids:
             x = db.execute('SELECT id, MAX(modified) FROM %s;' % id).fetchall()
             for k,v in x:
@@ -138,7 +139,7 @@ def get_collection_counts(app, environ, request, version, uid):
     dbpath = app.dbpath(uid, request.authorization.password)
     ids = iter_collections(dbpath); collections = {}
 
-    with sqlite3.connect(dbpath) as db:
+    with closing(sqlite3.connect(dbpath)) as db:
         for id in ids:
             cur = db.execute('SELECT id FROM %s;' % id)
             collections[id] = len(cur.fetchall())
@@ -156,7 +157,7 @@ def get_collection_usage(app, environ, request, version, uid):
         return Response('Not Authorized', 401)
 
     dbpath = app.dbpath(uid, request.authorization.password)
-    with sqlite3.connect(dbpath) as db:
+    with closing(sqlite3.connect(dbpath)) as db:
         res = {}
         for table in iter_collections(dbpath):
             v = db.execute('SELECT SUM(payload_size) FROM %s' % table).fetchone()[0] or 0
@@ -173,7 +174,7 @@ def get_quota(app, environ, request, version, uid):
         return Response('Not Authorized', 401)
 
     dbpath = app.dbpath(uid, request.authorization.password)
-    with sqlite3.connect(dbpath) as db:
+    with closing(sqlite3.connect(dbpath)) as db:
         sum = 0
         for table in iter_collections(dbpath):
             sum += db.execute('SELECT SUM(payload_size) FROM %s' % table).fetchone()[0] or 0
@@ -286,7 +287,7 @@ def collection(app, environ, request, version, uid, cid):
     if request.method == 'GET':
         # Returns a list of the WBO or ids contained in a collection.
 
-        with sqlite3.connect(dbpath) as db:
+        with closing(sqlite3.connect(dbpath)) as db:
             try:
                 res = db.execute('SELECT %s FROM %s' % (','.join(fields), cid) \
                       + filter_query + sort_query + limit_query).fetchall()
@@ -306,7 +307,7 @@ def collection(app, environ, request, version, uid, cid):
 
     if request.method == 'DELETE':
         try:
-            with sqlite3.connect(dbpath) as db:
+            with closing(sqlite3.connect(dbpath)) as db:
                 select = 'SELECT id FROM %s' % cid + filter_query \
                        + sort_query + limit_query
                 db.execute('DELETE FROM %s WHERE id IN (%s)' % (cid, select))
@@ -351,7 +352,7 @@ def item(app, environ, request, version, uid, cid, id):
 
     if request.method == 'GET':
         try:
-            with sqlite3.connect(dbpath) as db:
+            with closing(sqlite3.connect(dbpath)) as db:
                 res = db.execute('SELECT %s FROM %s WHERE id=?' % \
                     (','.join(FIELDS), cid), [id]).fetchone()
         except sqlite3.OperationalError:
@@ -386,7 +387,7 @@ def item(app, environ, request, version, uid, cid, id):
             headers={'X-Weave-Timestamp': round(obj['modified'], 2)})
 
     elif request.method == 'DELETE':
-        with sqlite3.connect(dbpath) as db:
+        with closing(sqlite3.connect(dbpath)) as db:
             db.execute('DELETE FROM %s WHERE id=?' % cid, [id])
         return Response(json.dumps(time.time()), 200,
             content_type='application/json')
