@@ -17,7 +17,7 @@
 # those of the authors and should not be interpreted as representing official
 # policies, either expressed or implied, of Martin Zimmermann <info@posativ.org>.
 #
-# lightweight firefox weave/sync server
+# lightweight Pale Moon weave/sync server
 
 from __future__ import print_function
 
@@ -221,7 +221,7 @@ def make_app(data_dir='.data/', base_url=None, register=False):
 def main():
 
     fmt = lambda prog: HelpFormatter(prog, max_help_position=28)
-    desc = u"A lightweight Firefox Sync server, that just works™. If it " \
+    desc = u"A lightweight Pale Moon Sync server, that just works™. If it " \
            u"doesn't just work for you, please file a bug: " \
            u"https://github.com/zootboy/weave-minimal/issues"
 

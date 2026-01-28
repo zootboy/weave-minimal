@@ -20,7 +20,7 @@ setup(
     zip_safe=True,
     url='https://github.com/posativ/weave-minimal/',
     license='BSD revised',
-    description='lightweight firefox weave/sync server',
+    description='lightweight pale moon weave/sync server',
     classifiers=[
         "Development Status :: 5 - Production/Stable",
         "Topic :: Internet",
