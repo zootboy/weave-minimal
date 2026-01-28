@@ -21,8 +21,8 @@
 
 from __future__ import print_function
 
-import pkg_resources
-dist = pkg_resources.get_distribution("weave-minimal")
+import importlib
+weave_version = importlib.metadata.version("weave-minimal")
 
 try:
     import gevent.monkey; gevent.monkey.patch_all()
@@ -256,7 +256,7 @@ def main():
     options = parser.parse_args()
 
     if options.version:
-        print('weave-minimal', dist.version, end=' ')
+        print('weave-minimal', weave_version, end=' ')
         print('(Storage API 1.1, User API 1.0)')
         sys.exit(0)
 

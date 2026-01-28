@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # -*- encoding: utf-8 -*-
 
-import pkg_resources
-werkzeug = pkg_resources.get_distribution("werkzeug")
+import importlib
+werkzeug = importlib.metadata.distribution("werkzeug")
 
 import re
 import json
