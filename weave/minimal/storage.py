@@ -44,6 +44,7 @@ def expire(dbpath, cid):
     try:
         with closing(sqlite3.connect(dbpath)) as db:
             db.execute("DELETE FROM %s WHERE (%s - modified) > ttl" % (cid, time.time()))
+            db.commit()
     except sqlite3.OperationalError:
         pass
 
@@ -101,6 +102,7 @@ def set_item(dbpath, uid, cid, data):
                 db.execute('UPDATE %s SET %s=? WHERE id=?;' % (cid, k), [v, obj['id']])
         except sqlite3.InterfaceError:
             raise ValueError
+        db.commit()
 
     return obj
 
@@ -311,6 +313,7 @@ def collection(app, environ, request, version, uid, cid):
                 select = 'SELECT id FROM %s' % cid + filter_query \
                        + sort_query + limit_query
                 db.execute('DELETE FROM %s WHERE id IN (%s)' % (cid, select))
+                db.commit()
         except sqlite3.OperationalError:
             pass
         return Response(json.dumps(time.time()), 200)
@@ -389,5 +392,6 @@ def item(app, environ, request, version, uid, cid, id):
     elif request.method == 'DELETE':
         with closing(sqlite3.connect(dbpath)) as db:
             db.execute('DELETE FROM %s WHERE id=?' % cid, [id])
+            db.commit()
         return Response(json.dumps(time.time()), 200,
             content_type='application/json')
