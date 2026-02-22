@@ -186,7 +186,6 @@ class Weave(object):
 
         with sqlite3.connect(dbpath) as con:
             con.commit()
-            con.close()
 
         logger.info("database for `%s` created at `%s`", uid, dbpath)
 
